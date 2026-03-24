@@ -1,0 +1,132 @@
+{
+  "source_dir": "C:\\Users\\Asus\\Documents\\git\\toy model",
+  "max_chunk_mb": 45.0,
+  "files": [
+    {
+      "name": "df2025_all.csv",
+      "source_size_bytes": 811332097,
+      "source_sha256": "fde8b9d916104a9670bf3ba47d611de48f921184ee5974ecbfa6de646a854735",
+      "parts": [
+        "chunks\\df2025_all.csv.part0001.csv",
+        "chunks\\df2025_all.csv.part0002.csv",
+        "chunks\\df2025_all.csv.part0003.csv",
+        "chunks\\df2025_all.csv.part0004.csv",
+        "chunks\\df2025_all.csv.part0005.csv",
+        "chunks\\df2025_all.csv.part0006.csv",
+        "chunks\\df2025_all.csv.part0007.csv",
+        "chunks\\df2025_all.csv.part0008.csv",
+        "chunks\\df2025_all.csv.part0009.csv",
+        "chunks\\df2025_all.csv.part0010.csv",
+        "chunks\\df2025_all.csv.part0011.csv",
+        "chunks\\df2025_all.csv.part0012.csv",
+        "chunks\\df2025_all.csv.part0013.csv",
+        "chunks\\df2025_all.csv.part0014.csv",
+        "chunks\\df2025_all.csv.part0015.csv",
+        "chunks\\df2025_all.csv.part0016.csv",
+        "chunks\\df2025_all.csv.part0017.csv",
+        "chunks\\df2025_all.csv.part0018.csv"
+      ],
+      "part_sizes_mb": [
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        8.756
+      ]
+    },
+    {
+      "name": "506-2024-1.csv",
+      "source_size_bytes": 163565585,
+      "source_sha256": "f0b9fce7412a113610e96a00313f2ac691c2fb928a66cb21f0af067729e6ac83",
+      "parts": [
+        "chunks\\506-2024-1.csv.part0001.csv",
+        "chunks\\506-2024-1.csv.part0002.csv",
+        "chunks\\506-2024-1.csv.part0003.csv",
+        "chunks\\506-2024-1.csv.part0004.csv"
+      ],
+      "part_sizes_mb": [
+        45.0,
+        45.0,
+        45.0,
+        20.989
+      ]
+    },
+    {
+      "name": "df_2024-2",
+      "source_size_bytes": 88788779,
+      "source_sha256": "433accc86472506849b4a22a82cec1553dfa70f48189cdc8d7c4af5cc50557a2",
+      "parts": [
+        "chunks\\df_2024-2.part0001.csv",
+        "chunks\\df_2024-2.part0002.csv"
+      ],
+      "part_sizes_mb": [
+        45.0,
+        39.676
+      ]
+    },
+    {
+      "name": "df_2026",
+      "source_size_bytes": 93404099,
+      "source_sha256": "8fcca11c28a994a51112742a33a43738824fa7fe49e19b6028818167ced384f4",
+      "parts": [
+        "chunks\\df_2026.part0001.csv",
+        "chunks\\df_2026.part0002.csv"
+      ],
+      "part_sizes_mb": [
+        45.0,
+        44.077
+      ]
+    },
+    {
+      "name": "all506_df-new-1.csv",
+      "source_size_bytes": 146823130,
+      "source_sha256": "6cbc43cfde6525263c91e5ade5c9beb2079acd92c13a536981f598b7860e417b",
+      "parts": [
+        "chunks\\all506_df-new-1.csv.part0001.csv",
+        "chunks\\all506_df-new-1.csv.part0002.csv",
+        "chunks\\all506_df-new-1.csv.part0003.csv",
+        "chunks\\all506_df-new-1.csv.part0004.csv"
+      ],
+      "part_sizes_mb": [
+        45.0,
+        45.0,
+        45.0,
+        5.022
+      ]
+    },
+    {
+      "name": "all506_df-new-2.csv",
+      "source_size_bytes": 252893616,
+      "source_sha256": "987a87c80171032f6e53f0febc03db329f0c6ffed848b2940f67fa9c99d69e31",
+      "parts": [
+        "chunks\\all506_df-new-2.csv.part0001.csv",
+        "chunks\\all506_df-new-2.csv.part0002.csv",
+        "chunks\\all506_df-new-2.csv.part0003.csv",
+        "chunks\\all506_df-new-2.csv.part0004.csv",
+        "chunks\\all506_df-new-2.csv.part0005.csv",
+        "chunks\\all506_df-new-2.csv.part0006.csv"
+      ],
+      "part_sizes_mb": [
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        45.0,
+        16.179
+      ]
+    }
+  ]
+}
