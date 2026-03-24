@@ -27,7 +27,7 @@ This project develops a flexible prediction tool for predicting bunching risk-ev
 ### <u> Summary of features to be used</u> 
 
 
-Our prediction model will essentially use three "layers" of features. 
+Our prediction model will essentially use multiple "layers" of features. 
 
 - First-order features: these features are directly calculated from the cleaned stop-level dataset, ```ev``` 
 
