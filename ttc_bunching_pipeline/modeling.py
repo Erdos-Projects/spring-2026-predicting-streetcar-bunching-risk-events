@@ -44,30 +44,6 @@ class TaskSpec:
 
 
 def default_task_threshold_policy() -> dict[str, str]:
-    
-#     return {
-#     "observed1_next2_gap1_binary": "f2_fprcap30",
-#     "observed2_next2_gap1_binary": "f2_fprcap30",
-#     "observed2_next3_gap1_binary": "f2_fprcap30",
-#     "observed3_next2_gap1_binary": "f2_fprcap30",
-#     "observed3_next3_gap1_binary": "f2_fprcap30",
-#     "observed3_next4_gap1_binary": "f2_fprcap30",
-#     "observed1_next1_binary": "f2",
-#     "observed2_next1_binary": "f2",
-#     "observed2_next2_binary": "f2",
-#     "observed3_next2_binary": "f2",
-#     "observed3_next3_binary": "f3_fprcap30",
-    
-#     "cond3of4_to_next4_ge2_binary": "f2_fprcap30",
-#     "cond3of5_to_next4_ge2_binary": "f2_fprcap30",
-#     "cond3of5_to_next5_ge3_binary": "f2_fprcap30",
-# }
-
-
-
-
-
-
 
 
     return {
@@ -91,25 +67,6 @@ def default_task_threshold_policy() -> dict[str, str]:
 
 
 
-
-# {
-#         "observed1_next2_gap1_binary": "f1_fprcap40",
-#         "observed2_next2_gap1_binary": "f1_fprcap40",
-#         "observed2_next3_gap1_binary": "f1_fprcap40",
-#         "observed3_next2_gap1_binary": "f1_fprcap40",
-#         "observed3_next3_gap1_binary": "f1_fprcap40",
-#         "observed3_next4_gap1_binary": "f1_fprcap40",
-#         "cond3of4_to_next4_ge2_binary": "f1_fprcap40",
-#         "cond3of5_to_next4_ge2_binary": "f1_fprcap40",
-#         "cond3of5_to_next5_ge3_binary": "f1_fprcap40",
-#         "observed1_next1_binary": "balacc",
-#         "observed2_next1_binary": "balacc",
-#         "observed2_next2_binary": "f1",
-#         "observed3_next2_binary": "f1",
-#         "observed3_next3_binary": "f1_fprcap40",
-#     }
-
-
 def threshold_stats(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
     tnr = float(tn / max(tn + fp, 1))
@@ -128,8 +85,7 @@ def threshold_stats(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
         "alert_rate": float(y_pred.mean()),
     }
 
-### threshold tuning does not require retraining.. 
-### 
+
 def pick_threshold(
     y_true: np.ndarray,
     p_hat: np.ndarray,
@@ -304,11 +260,11 @@ def _resolve_threshold_policy_for_task(
     return out
 
 
-def _require_lightgbm() -> None:
-    if lgb is None:
-        raise ModuleNotFoundError(
-            "lightgbm is not installed. Install it with `pip install lightgbm` to run LGBM benchmarks."
-        )
+# def _require_lightgbm() -> None:
+#     if lgb is None:
+#         raise ModuleNotFoundError(
+#             "lightgbm is not installed. Install it with `pip install lightgbm` to run LGBM benchmarks."
+#         )
 
 
 def _require_bayes_opt() -> None:
@@ -319,21 +275,21 @@ def _require_bayes_opt() -> None:
         )
 
 
-def _fit_lgbm_with_early_stopping(
-    model,
-    Xtr: pd.DataFrame,
-    ytr: np.ndarray,
-    Xva: pd.DataFrame,
-    yva: np.ndarray,
-) -> None:
-    _require_lightgbm()
-    model.fit(
-        Xtr,
-        ytr,
-        eval_set=[(Xva, yva)],
-        eval_metric="auc",
-        callbacks=[lgb.early_stopping(stopping_rounds=80, verbose=False)],
-    )
+# def _fit_lgbm_with_early_stopping(
+#     model,
+#     Xtr: pd.DataFrame,
+#     ytr: np.ndarray,
+#     Xva: pd.DataFrame,
+#     yva: np.ndarray,
+# ) -> None:
+#     _require_lightgbm()
+#     model.fit(
+#         Xtr,
+#         ytr,
+#         eval_set=[(Xva, yva)],
+#         eval_metric="auc",
+#         callbacks=[lgb.early_stopping(stopping_rounds=80, verbose=False)],
+#     )
 
 
 def encode_xgb(train_df: pd.DataFrame, other_df: pd.DataFrame, cat_cols: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -346,94 +302,94 @@ def encode_xgb(train_df: pd.DataFrame, other_df: pd.DataFrame, cat_cols: list[st
     return tr, ot
 
 
-def encode_xgb_for_model(
-    model: xgb.XGBClassifier,
-    X_live: pd.DataFrame,
-    cat_cols: list[str],
-) -> pd.DataFrame:
-    cat_cols = [c for c in cat_cols if c in X_live.columns]
-    Xenc = pd.get_dummies(X_live.copy(), columns=cat_cols, dummy_na=True)
+# def encode_xgb_for_model(
+#     model: xgb.XGBClassifier,
+#     X_live: pd.DataFrame,
+#     cat_cols: list[str],
+# ) -> pd.DataFrame:
+#     cat_cols = [c for c in cat_cols if c in X_live.columns]
+#     Xenc = pd.get_dummies(X_live.copy(), columns=cat_cols, dummy_na=True)
 
-    feat_names = list(getattr(model, "feature_names_in_", []))
-    if len(feat_names) == 0:
-        booster_names = model.get_booster().feature_names
-        if booster_names is not None:
-            feat_names = list(booster_names)
+#     feat_names = list(getattr(model, "feature_names_in_", []))
+#     if len(feat_names) == 0:
+#         booster_names = model.get_booster().feature_names
+#         if booster_names is not None:
+#             feat_names = list(booster_names)
 
-    if len(feat_names) == 0:
-        raise ValueError("Model has no feature names; cannot align live features safely.")
+#     if len(feat_names) == 0:
+#         raise ValueError("Model has no feature names; cannot align live features safely.")
 
-    Xenc = Xenc.reindex(columns=feat_names, fill_value=0)
-    Xenc = Xenc.apply(pd.to_numeric, errors="coerce").fillna(0.0).astype("float32")
-    return Xenc
-
-
-def _threshold_map(
-    thresholds: dict[str, float] | pd.DataFrame | None,
-) -> dict[str, float]:
-    if thresholds is None:
-        return {}
-
-    if isinstance(thresholds, dict):
-        out: dict[str, float] = {}
-        for k, v in thresholds.items():
-            out[str(k)] = float(v)
-        return out
-
-    if isinstance(thresholds, pd.DataFrame):
-        req = {"task", "best_threshold"}
-        if not req.issubset(set(thresholds.columns)):
-            raise ValueError(
-                "Threshold DataFrame must contain columns: 'task' and 'best_threshold'."
-            )
-        out = {}
-        for _, row in thresholds[["task", "best_threshold"]].dropna().iterrows():
-            out[str(row["task"])] = float(row["best_threshold"])
-        return out
-
-    raise TypeError(
-        "thresholds must be a dict[str, float], a DataFrame with "
-        "['task','best_threshold'], or None."
-    )
+#     Xenc = Xenc.reindex(columns=feat_names, fill_value=0)
+#     Xenc = Xenc.apply(pd.to_numeric, errors="coerce").fillna(0.0).astype("float32")
+#     return Xenc
 
 
-def predict_live(
-    X_live: pd.DataFrame,
-    models: dict[str, xgb.XGBClassifier],
-    cat_feats: list[str],
-    thresholds: dict[str, float] | pd.DataFrame | None = None,
-    eligible_by_task: dict[str, pd.Series] | None = None,
-    default_threshold: float = 0.5,
-) -> dict[str, pd.DataFrame]:
-    threshold_by_task = _threshold_map(thresholds)
-    out: dict[str, pd.DataFrame] = {}
+# def _threshold_map(
+#     thresholds: dict[str, float] | pd.DataFrame | None,
+# ) -> dict[str, float]:
+#     if thresholds is None:
+#         return {}
 
-    for task, model in models.items():
-        Xenc = encode_xgb_for_model(model=model, X_live=X_live, cat_cols=cat_feats)
-        proba = model.predict_proba(Xenc)[:, 1].astype("float64")
-        thr = float(threshold_by_task.get(task, default_threshold))
-        pred = (proba >= thr).astype("int8")
+#     if isinstance(thresholds, dict):
+#         out: dict[str, float] = {}
+#         for k, v in thresholds.items():
+#             out[str(k)] = float(v)
+#         return out
 
-        pred_df = pd.DataFrame(
-            {
-                "proba": proba,
-                "threshold": float(thr),
-                "pred": pred,
-            },
-            index=X_live.index,
-        )
+#     if isinstance(thresholds, pd.DataFrame):
+#         req = {"task", "best_threshold"}
+#         if not req.issubset(set(thresholds.columns)):
+#             raise ValueError(
+#                 "Threshold DataFrame must contain columns: 'task' and 'best_threshold'."
+#             )
+#         out = {}
+#         for _, row in thresholds[["task", "best_threshold"]].dropna().iterrows():
+#             out[str(row["task"])] = float(row["best_threshold"])
+#         return out
 
-        if eligible_by_task is not None and task in eligible_by_task:
-            eligible = pd.Series(eligible_by_task[task], index=X_live.index).fillna(False).astype(bool)
-            pred_df["eligible"] = eligible.astype("int8")
-            pred_df["pred_live"] = (pred_df["pred"].astype("int8") & pred_df["eligible"].astype("int8")).astype("int8")
-        else:
-            pred_df["eligible"] = np.int8(1)
-            pred_df["pred_live"] = pred_df["pred"].astype("int8")
+#     raise TypeError(
+#         "thresholds must be a dict[str, float], a DataFrame with "
+#         "['task','best_threshold'], or None."
+#     )
 
-        out[task] = pred_df
 
-    return out
+# def predict_live(
+#     X_live: pd.DataFrame,
+#     models: dict[str, xgb.XGBClassifier],
+#     cat_feats: list[str],
+#     thresholds: dict[str, float] | pd.DataFrame | None = None,
+#     eligible_by_task: dict[str, pd.Series] | None = None,
+#     default_threshold: float = 0.5,
+# ) -> dict[str, pd.DataFrame]:
+#     threshold_by_task = _threshold_map(thresholds)
+#     out: dict[str, pd.DataFrame] = {}
+
+#     for task, model in models.items():
+#         Xenc = encode_xgb_for_model(model=model, X_live=X_live, cat_cols=cat_feats)
+#         proba = model.predict_proba(Xenc)[:, 1].astype("float64")
+#         thr = float(threshold_by_task.get(task, default_threshold))
+#         pred = (proba >= thr).astype("int8")
+
+#         pred_df = pd.DataFrame(
+#             {
+#                 "proba": proba,
+#                 "threshold": float(thr),
+#                 "pred": pred,
+#             },
+#             index=X_live.index,
+#         )
+
+#         if eligible_by_task is not None and task in eligible_by_task:
+#             eligible = pd.Series(eligible_by_task[task], index=X_live.index).fillna(False).astype(bool)
+#             pred_df["eligible"] = eligible.astype("int8")
+#             pred_df["pred_live"] = (pred_df["pred"].astype("int8") & pred_df["eligible"].astype("int8")).astype("int8")
+#         else:
+#             pred_df["eligible"] = np.int8(1)
+#             pred_df["pred_live"] = pred_df["pred"].astype("int8")
+
+#         out[task] = pred_df
+
+#     return out
 
 
 def run_binary_classifier_xgb(
@@ -541,44 +497,48 @@ def run_binary_classifier_xgb(
 
     ## OOF threshold tuning (reuse cached OOF from cfg-scoring loop to avoid retraining)
     oof_df = cfg_oof_cache.get(_cfg_key(best_cfg))
-    if oof_df is None or len(oof_df) == 0:
-        # Fallback: rebuild OOF for best_cfg if cache is unavailable.
-        oof_rows = []
-        for fold_id, fd in enumerate(folds):
-            tr_mask = fd["train"]
-            va_mask = fd["valid"]
-            ytr = y.loc[tr_mask].to_numpy(dtype="int8")
-            yva = y.loc[va_mask].to_numpy(dtype="int8")
-            if len(np.unique(ytr)) < 2 or len(np.unique(yva)) < 2:
-                continue
-            Xtr, Xva = encode_xgb(X.loc[tr_mask], X.loc[va_mask], cat_feats)
-            spw = xgb_scale_pos_weight(ytr)
-            model = xgb.XGBClassifier(
-                objective="binary:logistic",
-                eval_metric="logloss",
-                tree_method="hist",
-                random_state=cfg.seed,
-                n_jobs=-1,
-                verbosity=0,
-                early_stopping_rounds=80,
-                scale_pos_weight=spw,
-                **best_cfg,
-            )
-            model.fit(Xtr, ytr, eval_set=[(Xva, yva)], verbose=False)
-            pva = model.predict_proba(Xva)[:, 1]
-            oof_rows.append(
-                pd.DataFrame(
-                    {
-                        "idx": X.index[va_mask],
-                        "fold_id": int(fold_id),
-                        "y_true": yva.astype("int8"),
-                        "proba": pva.astype("float64"),
-                    }
-                )
-            )
-        if len(oof_rows) == 0:
-            raise RuntimeError(f"Unable to build XGBoost OOF predictions for task={task}.")
-        oof_df = pd.concat(oof_rows, ignore_index=True)
+    
+    
+    # if oof_df is None or len(oof_df) == 0:
+    #     # Fallback: rebuild OOF for best_cfg if cache is unavailable.
+    #     oof_rows = []
+    #     for fold_id, fd in enumerate(folds):
+    #         tr_mask = fd["train"]
+    #         va_mask = fd["valid"]
+    #         ytr = y.loc[tr_mask].to_numpy(dtype="int8")
+    #         yva = y.loc[va_mask].to_numpy(dtype="int8")
+    #         if len(np.unique(ytr)) < 2 or len(np.unique(yva)) < 2:
+    #             continue
+    #         Xtr, Xva = encode_xgb(X.loc[tr_mask], X.loc[va_mask], cat_feats)
+    #         spw = xgb_scale_pos_weight(ytr)
+    #         model = xgb.XGBClassifier(
+    #             objective="binary:logistic",
+    #             eval_metric="logloss",
+    #             tree_method="hist",
+    #             random_state=cfg.seed,
+    #             n_jobs=-1,
+    #             verbosity=0,
+    #             early_stopping_rounds=80,
+    #             scale_pos_weight=spw,
+    #             **best_cfg,
+    #         )
+    #         model.fit(Xtr, ytr, eval_set=[(Xva, yva)], verbose=False)
+    #         pva = model.predict_proba(Xva)[:, 1]
+    #         oof_rows.append(
+    #             pd.DataFrame(
+    #                 {
+    #                     "idx": X.index[va_mask],
+    #                     "fold_id": int(fold_id),
+    #                     "y_true": yva.astype("int8"),
+    #                     "proba": pva.astype("float64"),
+    #                 }
+    #             )
+    #         )
+    #     if len(oof_rows) == 0:
+    #         raise RuntimeError(f"Unable to build XGBoost OOF predictions for task={task}.")
+    #     oof_df = pd.concat(oof_rows, ignore_index=True)
+    
+    
     y_oof = oof_df["y_true"].to_numpy(dtype="int8")
     p_oof = oof_df["proba"].to_numpy(dtype="float64")
     
@@ -601,7 +561,12 @@ def run_binary_classifier_xgb(
         **best_cfg,
     )
     final_model.fit(Xpre, y_pre, verbose=False)
+    
+    ## get predictions from X_test 
     pte = final_model.predict_proba(Xte)[:, 1]
+    
+    
+    
     yhat = (pte >= t_star).astype("int8")
 
     metrics = {
