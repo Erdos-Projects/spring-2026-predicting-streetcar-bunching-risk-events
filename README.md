@@ -92,15 +92,7 @@ The script validates each reconstructed file against the source SHA-256 stored i
 ## Data-loading in the pipeline
 
 The pipeline reads chunked event files directly from `data_files/manifest.json` by default.
-If chunk parts exist, they are preferred over large reconstructed CSVs.
 
-You can disable this behavior with:
-
-```python
-from ttc_bunching_pipeline import PipelineConfig
-
-cfg = PipelineConfig(prefer_chunked_events=False)
-```
 
 
 
