@@ -627,7 +627,6 @@ def build_binary_tasks(incident_df: pd.DataFrame, incident_X: pd.DataFrame, cfg:
 
 
 
-### make a version of this with hyperparam tuning?
 
 def train_xgb_binary_tasks(
     task_specs: list[TaskSpec],
