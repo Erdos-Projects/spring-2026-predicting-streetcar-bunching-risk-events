@@ -58,7 +58,7 @@ For each risk-event type,  we use XGBoost as our model for our binary classifica
 
 - Test set: 2025/11/16 to 2026/03/11
 
-We do a 4-fold cross-validation scheme for model training.  A hyperparameter grid search is done to search for optimal XGboost hyperparameters. Depending on the skewed-ness of the specific type of risk-event, we may choose different metrics for assessing performance on validation sets. Generally speaking, as we are leaning towards recall rate, we consider F2-score, with possibly a cap on false positive rate.  
+We do a 4-fold cross-validation scheme for model training.  A hyperparameter random search is done for tuning XGboost hyperparameters (grid search and bayesian optimization hyperparameter tuning options are also available). Depending on the skewed-ness of the specific type of risk-event, we may choose different metrics for assessing performance on validation sets. Generally speaking, as we are leaning towards recall rate, we consider F2-score, with possibly a cap on false positive rate.  
 
 
 # Data-loading
