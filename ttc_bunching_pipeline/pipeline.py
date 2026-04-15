@@ -33,9 +33,7 @@ class TrainingDataBundle:
     external_cols: list[str]
     external_sources: dict[str, str | None]
 
-    @property
-    def exog_cols(self) -> list[str]:
-        return self.external_cols
+
 
     @property
     def source_info(self) -> dict[str, str | None]:
@@ -57,9 +55,7 @@ class InferenceDataBundle:
     external_cols: list[str]
     external_sources: dict[str, str | None]
 
-    @property
-    def exog_cols(self) -> list[str]:
-        return self.external_cols
+
 
     @property
     def source_info(self) -> dict[str, str | None]:
@@ -71,7 +67,6 @@ def build_training_data_bundle(
     csv_path: str | None = None,
     extra_csv_paths: list[str] | None = None,
     add_external: bool = True,
-    add_exog: bool | None = None,
     max_rows: int | None = None,
 ) -> TrainingDataBundle:
     events = load_events_table(
@@ -85,8 +80,6 @@ def build_training_data_bundle(
     episodes, episodes_all = build_episode_tables(contacts, cfg)
     incident_df, confirmed_df = build_incident_tables(episodes, episodes_all, cfg)
 
-    if add_exog is not None:
-        add_external = bool(add_exog)
 
     if add_external:
         incident_df, confirmed_df, external_cols, external_sources = add_external_features(
@@ -130,7 +123,6 @@ def build_inference_data_bundle(
     csv_path: str | None = None,
     extra_csv_paths: list[str] | None = None,
     add_external: bool = True,
-    add_exog: bool | None = None,
     max_rows: int | None = None,
 ) -> InferenceDataBundle:
     events = load_events_table(
@@ -144,8 +136,6 @@ def build_inference_data_bundle(
     episodes, episodes_all = build_episode_tables(contacts, cfg)
     incident_df, confirmed_df = build_incident_tables(episodes, episodes_all, cfg)
 
-    if add_exog is not None:
-        add_external = bool(add_exog)
 
     if add_external:
         incident_df, confirmed_df, external_cols, external_sources = add_external_features(

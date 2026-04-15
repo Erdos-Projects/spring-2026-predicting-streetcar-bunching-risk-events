@@ -17,6 +17,7 @@ from .features import FeatureBundle, build_feature_bundle
 from .modeling import (
     build_binary_tasks,
     default_task_threshold_policy,
+    predict_live,
     train_xgb_binary_tasks,
 )
 from .pipeline import (
@@ -48,11 +49,10 @@ __all__ = [
     "build_feature_bundle",
     "default_task_threshold_policy",
     "build_binary_tasks",
+    "predict_live",
     "train_xgb_binary_tasks",
     "build_training_data_bundle",
     "build_inference_data_bundle",
     "TrainingDataBundle",
     "InferenceDataBundle",
 ]
-
-

@@ -144,44 +144,44 @@ def add_observation_checkpoint_targets(
         incident_df[decision_col(name)] = dts.to_numpy()
         incident_df[eligible_col(name)] = (dts.notna() & (cond_hits >= b)).astype("int8").to_numpy()
 
-    # Compatibility aliases for legacy cells.
-    alias_pairs = [
-        ("observed1_next12_any_binary", "observed1_next2_gap1_binary"),
-        ("observed2_next12_any_binary", "observed2_next2_gap1_binary"),
-        ("observed3_next12_any_binary", "observed3_next2_gap1_binary"),
-        ("observed1_next_binary", "observed1_next2_gap1_binary"),
-        ("incident_next1_binary_strict", "observed1_next1_binary"),
-        ("incident_next12_any_binary", "observed1_next2_gap1_binary"),
-        ("incident_next1_binary_relaxed", "observed1_next2_gap1_binary"),
-        ("incident_next1_binary", "observed1_next2_gap1_binary"),
-        ("obs2_next12_any_binary", "observed2_next2_gap1_binary"),
-        ("obs3_next12_any_binary", "observed3_next2_gap1_binary"),
-        ("obs2_next3_binary", "observed2_next3_gap1_binary"),
-        ("obs3_next2_binary", "observed3_next2_gap1_binary"),
-        ("obs3_next3_binary", "observed3_next3_gap1_binary"),
-        ("observed1_next1_strict_binary", "observed1_next1_binary"),
-    ]
-    for out_col, src_col in alias_pairs:
-        if src_col in incident_df.columns:
-            incident_df[out_col] = incident_df[src_col].astype("int8")
+    # # Compatibility aliases for legacy cells.
+    # alias_pairs = [
+    #     ("observed1_next12_any_binary", "observed1_next2_gap1_binary"),
+    #     ("observed2_next12_any_binary", "observed2_next2_gap1_binary"),
+    #     ("observed3_next12_any_binary", "observed3_next2_gap1_binary"),
+    #     ("observed1_next_binary", "observed1_next2_gap1_binary"),
+    #     ("incident_next1_binary_strict", "observed1_next1_binary"),
+    #     ("incident_next12_any_binary", "observed1_next2_gap1_binary"),
+    #     ("incident_next1_binary_relaxed", "observed1_next2_gap1_binary"),
+    #     ("incident_next1_binary", "observed1_next2_gap1_binary"),
+    #     ("obs2_next12_any_binary", "observed2_next2_gap1_binary"),
+    #     ("obs3_next12_any_binary", "observed3_next2_gap1_binary"),
+    #     ("obs2_next3_binary", "observed2_next3_gap1_binary"),
+    #     ("obs3_next2_binary", "observed3_next2_gap1_binary"),
+    #     ("obs3_next3_binary", "observed3_next3_gap1_binary"),
+    #     ("observed1_next1_strict_binary", "observed1_next1_binary"),
+    # ]
+    # for out_col, src_col in alias_pairs:
+    #     if src_col in incident_df.columns:
+    #         incident_df[out_col] = incident_df[src_col].astype("int8")
 
-    # Compatibility map for confirmed2 aliases.
-    if {"observed3_next1_binary", "observed3_next2_binary"}.issubset(incident_df.columns):
-        map_df = incident_df[
-            ["episode_id", "observed3_next1_binary", "observed3_next2_binary"]
-        ].copy()
-        for c in ["observed3_next1_binary", "observed3_next2_binary"]:
-            if c in confirmed_df.columns:
-                confirmed_df = confirmed_df.drop(columns=[c])
-        confirmed_df = confirmed_df.merge(map_df, on="episode_id", how="left")
-        confirmed_df["observed3_next1_strict_binary"] = pd.to_numeric(
-            confirmed_df["observed3_next1_binary"], errors="coerce"
-        ).fillna(0).astype("int8")
-        confirmed_df["observed3_next2_strict_binary"] = pd.to_numeric(
-            confirmed_df["observed3_next2_binary"], errors="coerce"
-        ).fillna(0).astype("int8")
-        confirmed_df["confirmed2_next1_binary"] = confirmed_df["observed3_next1_strict_binary"].astype("int8")
-        confirmed_df["confirmed2_next2_binary"] = confirmed_df["observed3_next2_strict_binary"].astype("int8")
+    # # Compatibility map for confirmed2 aliases.
+    # if {"observed3_next1_binary", "observed3_next2_binary"}.issubset(incident_df.columns):
+    #     map_df = incident_df[
+    #         ["episode_id", "observed3_next1_binary", "observed3_next2_binary"]
+    #     ].copy()
+    #     for c in ["observed3_next1_binary", "observed3_next2_binary"]:
+    #         if c in confirmed_df.columns:
+    #             confirmed_df = confirmed_df.drop(columns=[c])
+    #     confirmed_df = confirmed_df.merge(map_df, on="episode_id", how="left")
+    #     confirmed_df["observed3_next1_strict_binary"] = pd.to_numeric(
+    #         confirmed_df["observed3_next1_binary"], errors="coerce"
+    #     ).fillna(0).astype("int8")
+    #     confirmed_df["observed3_next2_strict_binary"] = pd.to_numeric(
+    #         confirmed_df["observed3_next2_binary"], errors="coerce"
+    #     ).fillna(0).astype("int8")
+    #     confirmed_df["confirmed2_next1_binary"] = confirmed_df["observed3_next1_strict_binary"].astype("int8")
+    #     confirmed_df["confirmed2_next2_binary"] = confirmed_df["observed3_next2_strict_binary"].astype("int8")
 
     # Keep task defs attached for downstream visibility.
     incident_df.attrs["risk_task_definitions"] = task_defs
