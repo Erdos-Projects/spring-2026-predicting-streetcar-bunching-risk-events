@@ -106,8 +106,17 @@ def load_events_table(
     csv_path: str | None = None,
     extra_csv_paths: list[str] | None = None,
     max_rows: int | None = None,
-    max_delay_minutes: float | None = 120.0,
+    max_delay_minutes: float | None = None,
+    max_gap_minutes: float | None = None,
+    outlier_policy: str | None = None,
 ) -> pd.DataFrame:
+    if max_delay_minutes is None:
+        max_delay_minutes = cfg.raw_event_max_delay_minutes
+    if max_gap_minutes is None:
+        max_gap_minutes = cfg.raw_event_max_gap_minutes
+    if outlier_policy is None:
+        outlier_policy = cfg.raw_event_outlier_policy
+
     chunk_map = _load_chunk_manifest_map(cfg)
     prefer_chunks_primary = cfg.prefer_chunked_events if csv_path is None else False
 
@@ -155,8 +164,7 @@ def load_events_table(
             else:
                 extra_paths.append(p)
 
-    # Preserve original semantics: max_rows limits primary read only.
-    # When the primary source is chunked, keep only the first chunk under max_rows.
+
     if max_rows is not None and len(primary_paths) > 1:
         primary_for_load = primary_paths[:1]
     else:
@@ -171,6 +179,8 @@ def load_events_table(
             csv_path,
             max_rows=max_rows,
             max_delay_minutes=max_delay_minutes,
+            max_gap_minutes=max_gap_minutes,
+            outlier_policy=outlier_policy,
             extra_csv_paths=extra_csv_paths,
         )
     except Exception as exc:
@@ -196,6 +206,8 @@ def load_events_table(
             fallback_all_paths[0],
             max_rows=max_rows,
             max_delay_minutes=max_delay_minutes,
+            max_gap_minutes=max_gap_minutes,
+            outlier_policy=outlier_policy,
             extra_csv_paths=fallback_all_paths[1:] or None,
         )
 

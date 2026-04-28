@@ -169,7 +169,29 @@ def normalize_legacy_raw(df: pd.DataFrame, stop_map: pd.DataFrame | None = None)
     return out
 
 
-def _coerce_event_fields(df: pd.DataFrame, max_delay_minutes: float | None) -> pd.DataFrame:
+def _normalize_outlier_policy(policy: str | None) -> str:
+    mode = "clip" if policy is None else str(policy).strip().lower()
+    aliases = {
+        "cap": "clip",
+        "capped": "clip",
+        "remove": "drop",
+        "filter": "drop",
+        "off": "none",
+    }
+    mode = aliases.get(mode, mode)
+    if mode not in {"clip", "drop", "none"}:
+        raise ValueError(
+            f"Unknown outlier_policy={policy!r}. Use one of: 'clip', 'drop', 'none'."
+        )
+    return mode
+
+
+def _coerce_event_fields(
+    df: pd.DataFrame,
+    max_delay_minutes: float | None,
+    max_gap_minutes: float | None,
+    outlier_policy: str = "clip",
+) -> pd.DataFrame:
     out = df.copy()
     desired_cols = [
         "datetime",
@@ -204,6 +226,8 @@ def _coerce_event_fields(df: pd.DataFrame, max_delay_minutes: float | None) -> p
     parsed_td = pd.to_timedelta(out["Gap"], errors="coerce").dt.total_seconds()
     parsed_mmss = pd.to_numeric(out["Gap"].map(parse_mmss), errors="coerce")
     out["gap_sec"] = gap_sec.fillna(parsed_td).fillna(parsed_mmss)
+    gap_sec2 = pd.to_numeric(out["gap_sec"], errors="coerce")
+    gap_sec2 = gap_sec2.where(gap_sec2 >= 0)
 
     headway_from_mmss = out["Headway"].map(parse_mmss)
     out["headway_sec"] = pd.to_numeric(headway_from_mmss, errors="coerce")
@@ -221,9 +245,30 @@ def _coerce_event_fields(df: pd.DataFrame, max_delay_minutes: float | None) -> p
     if source_col not in out.columns or out[source_col].isna().all():
         source_col = "cond_sum"
 
-    delay_raw = pd.to_numeric(out["mins delayed"], errors="coerce")
-    if max_delay_minutes is not None:
-        delay_raw = delay_raw.where(delay_raw <= float(max_delay_minutes))
+    policy = _normalize_outlier_policy(outlier_policy)
+    delay_raw = pd.to_numeric(out["mins delayed"], errors="coerce").clip(lower=0)
+
+    if policy == "drop":
+        keep = pd.Series(True, index=out.index, dtype=bool)
+        if max_delay_minutes is not None:
+            delay_cap = float(max_delay_minutes)
+            keep &= delay_raw.isna() | (delay_raw <= delay_cap)
+        if max_gap_minutes is not None:
+            gap_cap_sec = float(max_gap_minutes) * 60.0
+            keep &= gap_sec2.isna() | (gap_sec2 <= gap_cap_sec)
+        dropped = int((~keep).sum())
+        if dropped > 0:
+            print(f"[load_raw_events] dropped {dropped:,} outlier rows (delay/gap cap).")
+        out = out.loc[keep].copy()
+        delay_raw = delay_raw.loc[out.index]
+        gap_sec2 = gap_sec2.loc[out.index]
+    elif policy == "clip":
+        if max_delay_minutes is not None:
+            delay_raw = delay_raw.clip(upper=float(max_delay_minutes))
+        if max_gap_minutes is not None:
+            gap_sec2 = gap_sec2.clip(upper=float(max_gap_minutes) * 60.0)
+
+    out["gap_sec"] = gap_sec2.astype("float32")
     out["mins_delayed_f"] = delay_raw.astype("float32")
 
     out["upstream_bunched_5stops_3h_source_f"] = pd.to_numeric(
@@ -234,7 +279,6 @@ def _coerce_event_fields(df: pd.DataFrame, max_delay_minutes: float | None) -> p
     out["sch_adherence_f"] = pd.to_numeric(out["sch_adherence"], errors="coerce").astype("float32")
 
     headway_sec = pd.to_numeric(out["headway_sec"], errors="coerce")
-    gap_sec2 = pd.to_numeric(out["gap_sec"], errors="coerce")
     out["gap_excess_sec"] = (gap_sec2 - headway_sec).clip(lower=0).astype("float32")
     out["gap_headway_ratio"] = (gap_sec2 / headway_sec.replace(0, np.nan)).astype("float32")
 
@@ -245,6 +289,8 @@ def load_raw_events(
     csv_path: str | Path,
     max_rows: int | None = None,
     max_delay_minutes: float | None = 120.0,
+    max_gap_minutes: float | None = 120.0,
+    outlier_policy: str = "clip",
     extra_csv_paths: list[str | Path] | None = None,
 ) -> pd.DataFrame:
     all_paths = [Path(csv_path)] + [Path(p) for p in (extra_csv_paths or [])]
@@ -280,7 +326,12 @@ def load_raw_events(
                     cached_stop_map = _load_default_stop_map_from_disk()
             norm_base = normalize_legacy_raw(raw, stop_map=cached_stop_map)
 
-        events = _coerce_event_fields(norm_base, max_delay_minutes=max_delay_minutes)
+        events = _coerce_event_fields(
+            norm_base,
+            max_delay_minutes=max_delay_minutes,
+            max_gap_minutes=max_gap_minutes,
+            outlier_policy=outlier_policy,
+        )
         if len(events) > 0:
             dt_min = events["ts"].min().date()
             dt_max = events["ts"].max().date()

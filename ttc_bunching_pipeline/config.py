@@ -54,7 +54,7 @@ def default_risk_task_definitions() -> list[dict[str, int | str]]:
 
 @dataclass(frozen=True)
 class PipelineConfig:
-    seed: int = 42
+    seed: int = 27
 
     pair_dt_ratio_to_sched: float = 0.5
     pair_dt_min_sec: float = 60.0
@@ -81,6 +81,16 @@ class PipelineConfig:
 
     threshold_policy_global_default: str = "f2"
     threshold_fpr_cap_global_default: float = 0.40
+    xgb_calibration_method: str = "isotonic"
+    xgb_calibration_cv: int = 3
+
+    # Raw-event outlier handling at ingest:
+    # - "clip": cap values to the configured max
+    # - "drop": remove rows above configured max
+    # - "none": do not apply max-value filtering
+    raw_event_outlier_policy: str = "clip"
+    raw_event_max_delay_minutes: float | None = 120.0
+    raw_event_max_gap_minutes: float | None = 120.0
 
     xgb_params: list[dict] = field(
         default_factory=lambda: [

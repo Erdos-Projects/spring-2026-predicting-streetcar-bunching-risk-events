@@ -4,31 +4,32 @@ import json
 from dataclasses import dataclass
 import copy
 from itertools import product
-from hpsklearn import HyperoptEstimator, xgboost_classification
-from hyperopt import tpe
+# from hpsklearn import HyperoptEstimator, xgboost_classification
+# from hyperopt import tpe
 from sklearn.isotonic import IsotonicRegression
-
+import optuna
+from typing import Any, Dict
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-try:
-    import lightgbm as lgb
-except Exception:  # pragma: no cover - optional dependency
-    lgb = None
+# try:
+#     import lightgbm as lgb
+# except Exception:  # pragma: no cover - optional dependency
+#     lgb = None
 
-try:
-    from hyperopt import STATUS_OK, Trials, fmin, hp, rand
-except Exception:  # pragma: no cover - optional dependency
-    STATUS_OK = None
-    Trials = None
-    fmin = None
-    hp = None
-    rand = None
+# try:
+#     from hyperopt import STATUS_OK, Trials, fmin, hp, rand
+# except Exception:  # pragma: no cover - optional dependency
+#     STATUS_OK = None
+#     Trials = None
+#     fmin = None
+#     hp = None
+#     rand = None
 
-try:
-    from bayes_opt import BayesianOptimization
-except Exception:  # pragma: no cover - optional dependency
-    BayesianOptimization = None
+# try:
+#     from bayes_opt import BayesianOptimization
+# except Exception:  # pragma: no cover - optional dependency
+#     BayesianOptimization = None
 
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import (
@@ -56,29 +57,6 @@ class TaskSpec:
     y: pd.Series
     ts: pd.Series
     split: dict[str, pd.Series]
-
-
-# def default_task_threshold_policy() -> dict[str, str]:
-
-
-#     return {
-#     "observed1_next2_gap1_binary": {'name': "f2", 'fpr_cap': 40},
-#     "observed2_next2_gap1_binary": {'name': "f2",'fpr_cap': 40},
-    
-#     "observed2_next3_gap1_binary": {"name": "f2", 'fpr_cap': 40},
-#     "observed3_next2_gap1_binary": {"name": "f2", 'fpr_cap': 40},
-#     "observed3_next3_gap1_binary": {'name': "f2", 'fpr_cap': 40},
-#     "observed3_next4_gap1_binary": {'name': "f2", 'fpr_cap': 40},
-#     "observed1_next1_binary": {'name':"f2"},
-#     "observed2_next1_binary": {'name':"f2"},
-#     "observed2_next2_binary": {'name':"f2"},
-#     "observed3_next2_binary": {'name':"f2"},
-#     "observed3_next3_binary": {'name':"f3", 'fpr_cap': 40},
-#     "cond3of4_to_next4_ge2_binary": {'name': "f2", 'fpr_cap': 40},
-#     "cond3of5_to_next4_ge2_binary": {'name': "f2", 'fpr_cap': 40},
-#     "cond3of5_to_next5_ge3_binary": {'name': "f2", 'fpr_cap': 40},
-# }
-
 
 
 
@@ -124,7 +102,6 @@ def pick_threshold(
      
     row = cand.sort_values( [ policy_name, "f1" ], ascending=False).iloc[0] 
     
-        # Support either fraction (0.30) or percent-style (30) caps.
     # cap = float(policy["fpr_cap"])
     if policy_fpr_cap:
         if policy_fpr_cap> 1.0:
@@ -153,6 +130,7 @@ def pick_threshold(
     return float(row["threshold"]), {
         policy_name: float(row[ policy_name ]),
         "f1": float(row["f1"]),
+        "balanced accuracy": float(row["balanced_accuracy"]),
         "fpr": float(row["fpr"]),
         "tnr": float(row["tnr"]),
         "alert_rate": float(row["alert_rate"]),
@@ -216,46 +194,6 @@ def build_walkforward_folds(
 
     return list(reversed(folds))
 
-# def _require_lightgbm() -> None:
-#     if lgb is None:
-#         raise ModuleNotFoundError(
-#             "lightgbm is not installed. Install it with `pip install lightgbm` to run LGBM benchmarks."
-#         )
-
-
-# def _require_hyperopt() -> None:
-#     if fmin is None or hp is None or rand is None or Trials is None:
-#         raise ModuleNotFoundError(
-#             "hyperopt is not installed. Install it with `pip install hyperopt` "
-#             "to run random-search XGBoost tuning."
-#         )
-
-
-# def _require_bayes_opt() -> None:
-#     if BayesianOptimization is None:
-#         raise ModuleNotFoundError(
-#             "bayesian-optimization is not installed. Install it with "
-#             "`pip install bayesian-optimization` to run Bayesian XGBoost tuning."
-#         )
-
-
-# def _fit_lgbm_with_early_stopping(
-#     model,
-#     Xtr: pd.DataFrame,
-#     ytr: np.ndarray,
-#     Xva: pd.DataFrame,
-#     yva: np.ndarray,
-# ) -> None:
-#     _require_lightgbm()
-#     model.fit(
-#         Xtr,
-#         ytr,
-#         eval_set=[(Xva, yva)],
-#         eval_metric="auc",
-#         callbacks=[lgb.early_stopping(stopping_rounds=80, verbose=False)],
-#     )
-
-
 def encode_xgb(train_df: pd.DataFrame, other_df: pd.DataFrame, cat_cols: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
     cat_cols = [c for c in cat_cols if c in train_df.columns]
     tr = pd.get_dummies(train_df.copy(), columns=cat_cols, dummy_na=True)
@@ -287,34 +225,6 @@ def encode_xgb(train_df: pd.DataFrame, other_df: pd.DataFrame, cat_cols: list[st
 #     Xenc = Xenc.apply(pd.to_numeric, errors="coerce").fillna(0.0).astype("float32")
 #     return Xenc
 
-
-# def _threshold_map(
-#     thresholds: dict[str, float] | pd.DataFrame | None,
-# ) -> dict[str, float]:
-#     if thresholds is None:
-#         return {}
-
-#     if isinstance(thresholds, dict):
-#         out: dict[str, float] = {}
-#         for k, v in thresholds.items():
-#             out[str(k)] = float(v)
-#         return out
-
-#     if isinstance(thresholds, pd.DataFrame):
-#         req = {"task", "best_threshold"}
-#         if not req.issubset(set(thresholds.columns)):
-#             raise ValueError(
-#                 "Threshold DataFrame must contain columns: 'task' and 'best_threshold'."
-#             )
-#         out = {}
-#         for _, row in thresholds[["task", "best_threshold"]].dropna().iterrows():
-#             out[str(row["task"])] = float(row["best_threshold"])
-#         return out
-
-#     raise TypeError(
-#         "thresholds must be a dict[str, float], a DataFrame with "
-#         "['task','best_threshold'], or None."
-#     )
 
 
 # def predict_live(
@@ -356,271 +266,15 @@ def encode_xgb(train_df: pd.DataFrame, other_df: pd.DataFrame, cat_cols: list[st
 #     return out
 
 
-# def run_binary_classifier_xgb(
-#     task: str,
-#     X: pd.DataFrame,
-#     y: pd.Series,
-#     ts: pd.Series,
-#     split: dict[str, pd.Series],
-#     cat_feats: list[str],
-#     cfg: PipelineConfig,
-#     threshold_policy: dict,
-#     pre_tuned_params: dict | None = None,
-#     calibration_method: str | None = None,
-#     calibration_cv: int | None = None,
-# ) -> tuple[dict[str, object], object, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-#     calibration_method = cfg.xgb_calibration_method if calibration_method is None else calibration_method
-#     calibration_cv = cfg.xgb_calibration_cv if calibration_cv is None else calibration_cv
-#     calibration_method = _normalize_calibration_method(calibration_method)
-#     calibration_cv = int(calibration_cv)
-#     if calibration_method != "none" and calibration_cv < 2:
-#         raise ValueError("calibration_cv must be >= 2 when calibration_method is not 'none'.")
-
-#     y = pd.to_numeric(y, errors="coerce").fillna(0).astype("int8")
-#     ts = pd.to_datetime(ts)
+def score_model(model: xgb.core.Booster, dmat: xgb.core.DMatrix, thres: np.int64 ) -> dict:
+    y_true = dmat.get_label().astype(int)
     
-#     pretest_mask = pd.Series(split["train"] | split["valid"], index=X.index).astype(bool)
-#     test_mask = pd.Series(split["test"], index=X.index).astype(bool)
+    y_pred = ( model.predict( dmat ) >= thres ).astype(np.int64)
     
-    
-#     folds = build_walkforward_folds(ts=ts, pretest_mask=pretest_mask, cfg=cfg)
-#     if len(folds) < 2:
-#         folds = [
-#             {
-#                 "train": pd.Series(split["train"], index=X.index).astype(bool),
-#                 "valid": pd.Series(split["valid"], index=X.index).astype(bool),
-#                 "valid_start": pd.Timestamp(cfg.valid_split),
-#                 "valid_end": pd.Timestamp(cfg.test_split),
-#             }
-#         ]
-
-#     tuned_entry = None if pre_tuned_params is None else pre_tuned_params.get(task)
-#     if tuned_entry is not None:
-#         best_cfg = copy.deepcopy(dict(tuned_entry["best_cfg"]))
-#         candidate_rows = list(tuned_entry.get("candidate_rows", []))
-#         if len(candidate_rows) > 0:
-#             cfg_scores_df = (
-#                 pd.DataFrame(candidate_rows)
-#                 .sort_values(["cv_logloss_mean", "cv_logloss_std"], ascending=[True, True])
-#                 .reset_index(drop=True)
-#             )
-#         else:
-#             cfg_scores_df = pd.DataFrame(
-#                 [
-#                     {
-#                         "task": task,
-#                         "cfg_id": 0,
-#                         "cv_logloss_mean": float(tuned_entry.get("cv_logloss_mean", np.nan)),
-#                         "cv_logloss_std": float(tuned_entry.get("cv_logloss_std", np.nan)),
-#                         "cv_used_folds": int(tuned_entry.get("cv_used_folds", 0)),
-#                         "cfg": json.dumps(best_cfg),
-#                     }
-#                 ]
-#             )
-#     else:
-#         cfg_rows: list[dict[str, object]] = []
-#         for cfg_id, xcfg in enumerate(cfg.xgb_params):
-#             cv_logloss_mean, cv_logloss_std, used_folds = _cv_logloss_for_cfg(
-#                 task_spec=TaskSpec(task=task, X=X, y=y, ts=ts, split=split),
-#                 cat_feats=cat_feats,
-#                 xgb_cfg=xcfg,
-#                 cfg=cfg,
-#             )
-#             if not np.isfinite(cv_logloss_mean):
-#                 continue
-#             cfg_rows.append(
-#                 {
-#                     "task": task,
-#                     "cfg_id": int(cfg_id),
-#                     "cv_logloss_mean": float(cv_logloss_mean),
-#                     "cv_logloss_std": float(cv_logloss_std),
-#                     "cv_used_folds": int(used_folds),
-#                     "cfg": json.dumps(xcfg),
-#                 }
-#             )
-#         if len(cfg_rows) == 0:
-#             raise RuntimeError(f"No valid XGBoost CV folds for task={task}.")
-#         cfg_scores_df = (
-#             pd.DataFrame(cfg_rows)
-#             .sort_values(["cv_logloss_mean", "cv_logloss_std"], ascending=[True, True])
-#             .reset_index(drop=True)
-#         )
-#         best_cfg = json.loads(cfg_scores_df.iloc[0]["cfg"])
-
-#     best_cv_logloss = float(cfg_scores_df.iloc[0]["cv_logloss_mean"])
-#     best_cv_logloss_std = float(cfg_scores_df.iloc[0]["cv_logloss_std"])
-
-#     # Threshold tuning is done on calibrated OOF probabilities and uses F2.
-#     threshold_policy = dict(threshold_policy or {})
-#     threshold_policy["name"] = "f2"
-#     threshold_policy["fpr_cap"] = 0.40
-#     oof_rows = []
-#     for fold_id, fd in enumerate(folds):
-#         tr_mask = fd["train"]
-#         va_mask = fd["valid"]
-#         ytr = y.loc[tr_mask].to_numpy(dtype="int8")
-#         yva = y.loc[va_mask].to_numpy(dtype="int8")
-#         if len(np.unique(ytr)) < 2 or len(np.unique(yva)) < 2:
-#             continue
-#         Xtr, Xva = encode_xgb(X.loc[tr_mask], X.loc[va_mask], cat_feats)
-
-#         if calibration_method == "none":
-#             fold_model = xgb.XGBClassifier(
-#                 objective="binary:logistic",
-#                 eval_metric="logloss",
-#                 tree_method="hist",
-#                 random_state=cfg.seed,
-#                 n_jobs=-1,
-#                 verbosity=0,
-#                 early_stopping_rounds=80,
-#                 **best_cfg,
-#             )
-#             fold_model.fit(Xtr, ytr, eval_set=[(Xva, yva)], verbose=False)
-#         else:
-#             pos_tr = int(np.sum(ytr == 1))
-#             neg_tr = int(np.sum(ytr == 0))
-#             local_calibration_cv = min(calibration_cv, pos_tr, neg_tr)
-#             if local_calibration_cv < 2:
-#                 continue
-#             base_fold_model = xgb.XGBClassifier(
-#                 objective="binary:logistic",
-#                 eval_metric="logloss",
-#                 tree_method="hist",
-#                 random_state=cfg.seed,
-#                 n_jobs=-1,
-#                 verbosity=0,
-#                 **best_cfg,
-#             )
-#             fold_model = CalibratedClassifierCV(
-#                 estimator=base_fold_model,
-#                 method=calibration_method,
-#                 cv=int(local_calibration_cv),
-#             )
-#             fold_model.fit(Xtr, ytr)
-
-#         pva = fold_model.predict_proba(Xva)[:, 1]
-#         oof_rows.append(
-#             pd.DataFrame(
-#                 {
-#                     "idx": X.index[va_mask],
-#                     "fold_id": int(fold_id),
-#                     "y_true": yva.astype("int8"),
-#                     "proba": pva.astype("float64"),
-#                 }
-#             )
-#         )
-
-#     if len(oof_rows) == 0:
-#         raise RuntimeError(f"Unable to build threshold-tuning OOF predictions for task={task}.")
-#     oof_df = pd.concat(oof_rows, ignore_index=True)
-#     y_oof = oof_df["y_true"].to_numpy(dtype="int8")
-#     p_oof = oof_df["proba"].to_numpy(dtype="float64")
-
-#     tuned_threshold, tuned_attrs = pick_threshold(y_oof, p_oof, policy=threshold_policy)
-#     default_threshold = 0.50
-#     default_stats = threshold_stats(y_oof, (p_oof >= default_threshold).astype("int8"))
-#     default_attrs = {
-#         "f2": float(default_stats["f2"]),
-#         "f1": float(default_stats["f1"]),
-#         "fpr": float(default_stats["fpr"]),
-#         "tnr": float(default_stats["tnr"]),
-#         "alert_rate": float(default_stats["alert_rate"]),
-#     }
-#     tuned_f2 = float(tuned_attrs.get("f2", np.nan))
-#     default_f2 = float(default_attrs["f2"])
-#     threshold_adjusted = bool(np.isfinite(tuned_f2) and tuned_f2 > (default_f2 + 1e-12))
-#     if threshold_adjusted:
-#         t_star = float(tuned_threshold)
-#         threshold_attrs = tuned_attrs
-#     else:
-#         t_star = float(default_threshold)
-#         threshold_attrs = default_attrs
-
-#     y_pre = y.loc[pretest_mask].to_numpy(dtype="int8")
-#     y_te = y.loc[test_mask].to_numpy(dtype="int8")
-#     Xpre, Xte = encode_xgb(X.loc[pretest_mask], X.loc[test_mask], cat_feats)
-
-#     # Final fit on full pretest, then probability calibration.
-#     calibration_cv_used = int(calibration_cv)
-#     if calibration_method == "none":
-#         final_model = xgb.XGBClassifier(
-#             objective="binary:logistic",
-#             eval_metric="logloss",
-#             tree_method="hist",
-#             random_state=cfg.seed,
-#             n_jobs=-1,
-#             verbosity=0,
-#             **best_cfg,
-#         )
-#         final_model.fit(Xpre, y_pre, verbose=False)
-#     else:
-#         pos_pre = int(np.sum(y_pre == 1))
-#         neg_pre = int(np.sum(y_pre == 0))
-#         calibration_cv_used = min(calibration_cv, pos_pre, neg_pre)
-#         if calibration_cv_used < 2:
-#             raise RuntimeError(
-#                 f"Task={task}: insufficient per-class rows in pretest data for "
-#                 f"CalibratedClassifierCV (requested cv={calibration_cv}). "
-#                 "Lower calibration_cv or disable calibration."
-#             )
-#         base_final_model = xgb.XGBClassifier(
-#             objective="binary:logistic",
-#             eval_metric="logloss",
-#             tree_method="hist",
-#             random_state=cfg.seed,
-#             n_jobs=-1,
-#             verbosity=0,
-#             **best_cfg,
-#         )
-#         final_model = CalibratedClassifierCV(
-#             estimator=base_final_model,
-#             method=calibration_method,
-#             cv=int(calibration_cv_used),
-#         )
-#         final_model.fit(Xpre, y_pre)
-
-#     pte = final_model.predict_proba(Xte)[:, 1]
-#     yhat = (pte >= t_star).astype("int8")
-#     auc_test = float(roc_auc_score(y_te, pte)) if len(np.unique(y_te)) >= 2 else np.nan
-
-#     metrics = {
-#         "task": task,
-#         "type": "binary_classifier_timecv_xgboost",
-#         "hyperparameter_tuning_objective": "logloss",
-#         "cv_n_folds": int(len(folds)),
-#         "cv_mean_logloss": float(best_cv_logloss),
-#         "cv_std_logloss": float(best_cv_logloss_std),
-#         "cv_mean_neg_logloss": float(-best_cv_logloss),
-#         "probability_calibration_method": calibration_method,
-#         "probability_calibration_cv": int(calibration_cv_used),
-#         "threshold_policy": "f2",
-#         "threshold_fpr_cap": float(threshold_policy.get("fpr_cap")) if threshold_policy.get("fpr_cap") is not None else np.nan,
-#         "threshold_tuning_split": "oof_cv_calibrated",
-#         "threshold_adjusted": bool(threshold_adjusted),
-#         "default_threshold": float(default_threshold),
-#         "best_threshold": float(t_star),
-#         "threshold_selection_metric_oof_f2_default": float(default_f2),
-#         "threshold_selection_metric_oof_f2_tuned": float(tuned_f2),
-#         "threshold_selection_metric_oof_f2_used": float(threshold_attrs["f2"]),
-#         "threshold_selection_metric_oof_f1": float(threshold_attrs["f1"]),
-#         "threshold_selection_metric_oof_fpr": float(threshold_attrs["fpr"]),
-#         "base_rate_train_pretest": float(y_pre.mean()),
-#         "base_rate_test": float(y_te.mean()),
-#         "ap_oof": float(average_precision_score(y_oof, p_oof)),
-#         "ap_test": float(average_precision_score(y_te, pte)),
-#         "auc_test": float(auc_test),
-#         "f1_test": float(f1_score(y_te, yhat, zero_division=0)),
-#         "f2_test": float(fbeta_score(y_te, yhat, beta=2, zero_division=0)),
-#         "precision_test": float(precision_score(y_te, yhat, zero_division=0)),
-#         "recall_test": float(recall_score(y_te, yhat, zero_division=0)),
-#         "accuracy_test": float(accuracy_score(y_te, yhat)),
-#         "balanced_accuracy_test": float(balanced_accuracy_score(y_te, yhat)),
-#         "best_cfg": json.dumps(best_cfg),
-#     }
-#     pred_df = pd.DataFrame({"proba": pte, "pred": yhat, "y_true": y_te})
-    
-    
-#     return metrics, final_model, pred_df, oof_df, cfg_scores_df
+    return {
+        'accuracy': accuracy_score(y_true, y_pred),
+        'macro_f1': f1_score(y_true, y_pred, average='macro'),
+    }
 
 
 def build_binary_tasks(incident_df: pd.DataFrame, incident_X: pd.DataFrame, cfg: PipelineConfig) -> list[TaskSpec]:
@@ -680,39 +334,151 @@ def train_xgb_models( task_specs: list[TaskSpec],
                     "valid_end": pd.Timestamp(cfg.test_split),
                 }
             ]
-        
+        # fold_models = [] 
         cv_model_dict = {} 
         for fold in folds:
+            
             train_mask = fold["train"]
             valid_mask = fold["valid"]
             
             y_train , y_valid = y.loc[train_mask].to_numpy(dtype="int8"), y.loc[valid_mask].to_numpy(dtype="int8")
             
             X_train, X_valid = encode_xgb(X.loc[train_mask], X.loc[valid_mask], cat_feats)
-                
+            
+            X_trainvalid,_ = encode_xgb(X.loc[ train_mask | valid_mask ], X.loc[train_mask | valid_mask] , cat_feats ) 
+            
             # X_valid, y_valid = spec.X[cfg.valid_split], spec.y[cfg.valid_split]
             # X_train, y_train = spec.X[cfg.train_split], spec.y[cfg.train_split]
             
-            estimator = HyperoptEstimator( classifier= xgboost_classification('my_clf'), preprocessing=[], algo=tpe.suggest, max_evals = 20, trial_timeout=300, seed=42)
             
-            estimator.fit(X_train, y_train)
+            dtrain, dvalid = xgb.DMatrix( data = X_train, label = y_train , enable_categorical=True ), xgb.DMatrix( data= X_valid, label = y_valid , enable_categorical = True )
             
-            
-            fold_best_model = estimator.best_model()['learner']
+            dtrainvalid = xgb.DMatrix( data= X_trainvalid, label = y.loc[train_mask | valid_mask].to_numpy(dtype="int8"), enable_categorical = True )
             
             
-            # calibr = IsotonicRegression()
-            # calibr.fit(model_preds_valid , y_valid)
+
             
-            # calibr_preds_valid = calibr.predict( X_valid )
+                    
             
-            cv_model_dict[spec.task] = (estimator.score(X_valid,y_valid), fold_best_model ) 
+            metric = 'logloss'
+            base_params = {
+            'objective': 'binary:logistic',
+            'eval_metric': metric,
+            }
+
+
+
+            learning_rate = 0.1
+            params = {
+                'tree_method': 'hist',
+                'learning_rate': learning_rate,
+            }
+            params.update(base_params)
+
+            # tic = time.time()
+#             model = xgb.train(
+#                 params=params,
+#                 dtrain=dtrain,
+#                 evals=[(dtrain, 'train'), (dvalid, 'valid')],
+#                 num_boost_round=10000,
+#                 early_stopping_rounds=50,
+#                 verbose_eval=0,
+# )
+
+            ######################
+            def objective(trial):
+                params = {
+                    'tree_method': 'hist',
+                    'max_depth': trial.suggest_int('max_depth', 3, 12),
+                    'min_child_weight': trial.suggest_int('min_child_weight', 1, 250),
+                    'subsample': trial.suggest_float('subsample', 0.1, 1.0),
+                    'colsample_bynode': trial.suggest_float('colsample_bynode', 0.1, 1.0),
+                    'reg_lambda': trial.suggest_float('reg_lambda', 0.001, 25, log=True),
+                    'learning_rate': learning_rate,
+                }
+                params.update(base_params)
+
+                pruning_callback = optuna.integration.XGBoostPruningCallback(trial, f'valid-{metric}')
+                model = xgb.train(
+                    params=params,
+                    dtrain=dtrain,
+                    num_boost_round=10000,
+                    evals=[(dtrain, 'train'), (dvalid, 'valid')],
+                    early_stopping_rounds=50,
+                    verbose_eval=0,
+                    callbacks=[pruning_callback],
+                )
+                trial.set_user_attr('best_iteration', model.best_iteration)
+                return model.best_score
+            #####################################
+            
+            study = optuna.create_study(direction='minimize')
+            study.optimize(objective, n_trials= 2000)
+            
+            
+            
+            ## re-run with slower learning rate 
+            low_learning_rate = 0.01
+
+            params = {}
+            params.update(base_params)
+            params.update(study.best_trial.params)
+            params['learning_rate'] = low_learning_rate
+
+            model_stage2 = xgb.train(
+                params=params,
+                dtrain=dtrain,
+                num_boost_round=10000,
+                evals=[(dtrain, 'train'), (dvalid, 'valid')],
+                early_stopping_rounds=50,
+                verbose_eval=0,
+            )
+            evals_result: Dict[str, Any] = {}
+
+            ## in fold final model ... collect fold final models in a list and take the one with best score
+            fold_best_model = xgb.train(params=params, dtrain=dtrainvalid, 
+                            num_boost_round=model_stage2.best_iteration,
+                            verbose_eval=0, evals = [(dtrainvalid, 'trainvalid')], evals_result=evals_result)
+            
+            if hasattr(fold_best_model, "best_score"):
+                fold_best_score = float(fold_best_model.best_score)
+            else:
+                hist = [float(v) for v in evals_result["trainvalid"][metric]]
+                fold_best_score = float(min(hist))   # "best" logloss
+    
+            
+            
+            # fold_best_score = evals_result["trainvalid"][metric]
+            
+            
+            
+            
+            cv_model_dict[spec.task] = ( fold_best_score , params, fold_best_model ) 
+            
+            
+            
+            
+
+            # # estimator = HyperoptEstimator( classifier= xgboost_classification('my_clf'), preprocessing=[], algo=tpe.suggest, max_evals = 20,  trial_timeout=300, seed=42)
+            
+            # estimator.fit(X_train, y_train)
+            
+            
+            # fold_best_model = estimator.best_model()['learner']
+            
+            
+            # # calibr = IsotonicRegression()
+            # # calibr.fit(model_preds_valid , y_valid)
+            
+            # # calibr_preds_valid = calibr.predict( X_valid )
+            
+            # cv_model_dict[spec.task] = (estimator.score(X_valid,y_valid), fold_best_model ) 
             # threshold_selection = pick_threshold( y_train,  )
         
         
         sorted_scores = sorted( [ cv_model_dict[key]  for key in cv_model_dict ] )
-        best_model = sorted_scores[-1][1]
-        
+        oof_best_model = sorted_scores[0][2]
+        oof_best_params = sorted_scores[0][1]
         train_df = spec.X[pretest_mask]
         
         test_df = spec.X[test_mask]
@@ -737,37 +503,61 @@ def train_xgb_models( task_specs: list[TaskSpec],
         y_test = spec.y[test_mask]
         
         
-        best_model.fit(X_tr, y_tr)
-        best_model_probs = best_model.predict_proba(X_tr)[:, 1]
+        dtrain, dtest = xgb.DMatrix( data = X_tr, label = y_tr , enable_categorical=True ), xgb.DMatrix( data= X_test, label = y_test , enable_categorical = True )
+            
+        # dtrainvalid = xgb.DMatrix( data= X.loc[pretest_mask], label = y.loc[pretest_mask].to_numpy(dtype="int8"), enable_categorical = True )
+            
+        best_iter = getattr(oof_best_model, "best_iteration", None)
+        num_rounds = (best_iter + 1) if best_iter is not None else oof_best_model.num_boosted_rounds()
+        # best_model.predict( dtrain )
+        best_model = xgb.train(params= oof_best_params , dtrain= dtrain, 
+                            num_boost_round= num_rounds,
+                            verbose_eval=0)
+        
+        
+        # best_model.fit( dtrain )
+        best_model_probs = best_model.predict( dtrain )
         # best_model_preds = best_model.predict( X_tr )
         
-        best_model_test_probs = best_model.predict_proba(X_test )[:,1]
+        best_model_test_probs = best_model.predict( dtest ) 
+        
+        
         # Avoid NaNs at inference when scores fall outside the fitted isotonic range.
         calibrated_model = IsotonicRegression(out_of_bounds="clip").fit( best_model_probs , y_tr )
         calibrated_probs_train = calibrated_model.predict(best_model_probs )
         calibrated_probs_test = calibrated_model.predict(best_model_test_probs  )
         
-        t_star, t_metrics = pick_threshold( y_tr, calibrated_probs_train,policy= {'name': "f2", 'fpr_cap': 40})
+        # t_star, t_metrics = pick_threshold( y_tr, calibrated_probs_train,policy= {'name': "balanced_accuracy", 'fpr_cap': None })
+        t_star, t_metrics = pick_threshold(  spec.y[pretest_mask], best_model_probs , policy= {'name': "f2", 'fpr_cap': None } )
         
+        t_star_cal, t_metrics_cal = pick_threshold( y_tr, calibrated_probs_train,policy= {'name': "f2", 'fpr_cap': None })
          
-        calibrated_preds = ( calibrated_probs_test >= t_star).astype("int8") 
+        calibrated_preds = ( calibrated_probs_test >= t_star_cal ).astype("int8") 
         
         
         ## select threshold for metrics
         
-        # t_star, t_metrics = pick_threshold(  spec.y[pretest_mask], best_model_probs , policy= {'name': "f2", 'fpr_cap': 40} )
         
         
         model_dict[spec.task] = {'model': best_model, 
+                                                'model_preds_default_threshold': (best_model_test_probs >= 0.5 ).astype("int8"),
                                                 'model_preds':  (best_model_test_probs >= t_star).astype("int8"), 
                                                 'precalib_proba': best_model_test_probs,
                                                 'calibrated_preds': calibrated_preds,
                                                 'proba': calibrated_probs_test,
-                                                'metrics': { 'f2': fbeta_score(spec.y[test_mask], calibrated_preds, beta=2), 
+                                                'precalib_train_probs': best_model_probs,
+                                                'calib_train_probs': calibrated_probs_train,
+                                                'metrics': { 
+                                                            'f1': f1_score(spec.y[test_mask], calibrated_preds ),
+                                                            'f2': fbeta_score(spec.y[test_mask], calibrated_preds, beta=2), 
                                                             "recall": recall_score(spec.y[test_mask], calibrated_preds), 
                                                             "precision": precision_score(spec.y[test_mask], calibrated_preds) , 
                                                             "average precision": average_precision_score(spec.y[test_mask], calibrated_preds), 
-                                                            "auc": roc_auc_score(spec.y[test_mask], calibrated_preds)} } 
+                                                            "auc": roc_auc_score(spec.y[test_mask], calibrated_preds)} ,
+                                                't_metrics': t_metrics 
+                                                
+                                                
+                                                }  
 
         
     return model_dict
