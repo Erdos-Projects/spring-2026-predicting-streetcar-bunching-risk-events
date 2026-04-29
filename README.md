@@ -61,6 +61,51 @@ For each risk-event type,  we use XGBoost as our model for our binary classifica
 We do a 4-fold cross-validation scheme for model training.  A hyperparameter random search is done for tuning XGboost hyperparameters (grid search and bayesian optimization hyperparameter tuning options are also available). Depending on the skewed-ness of the specific type of risk-event, we may choose different metrics for assessing performance on validation sets. Generally speaking, as we are leaning towards recall rate, we consider F2-score, with possibly a cap on false positive rate.  
 
 
+We use [https://optuna.org/](Optuna) for hyperparameter tuning. 
+
+
+# Overview of results 
+
+
+We train the bunching risk binary classification models for a sample of task types in [final_results.ipynb](final_results.ipynb). 
+
+
+### Task types used
+|  (b,s,n,m) :   |                |
+|----------------|----------------|
+|   (1,1,1,2)    |  (3,5,3,4)     |
+|   (3,3,1,2)    |  (2,3,2,3)     |
+|   (3,4,2,4)    |   (3,5,2,5)    |
+|   (2,5,2,5)    |   (2,5,3,4)    |
+|   (2,4,,2,2)   |   (3,4,2,2)    |
+
+
+Recall that a task of type (b,s,n,m) has the interpretation "given b bunching incidents in the last s stops, predict if there will be at least n bunching incidents in the next m stops". 
+
+
+Below we display some confusion matrices for the loaded binary classification tasks. In the context of designing a bunching alert system, the important entry to note here is the bottom right entry of the matrix. Along with the raw count, we display a sensitivity/recall rate and precision. Sensitivity/recall is the probability that a true positive event gets classified with a positive label, while precision is the probability that a classified positive label corresponds to an actual true positive event. Think of recall as the portion of true events that are not missed by the classifier, while precision is the portion of correct labels (out of samples that the classifier has labelled positive)
+
+
+![](images/confmatrix1.png) ![](images/confmatrix2.png) 
+![](images/confmatrix3.png) ![](images/confmatrix4.png) 
+![](images/confmatrix5.png) ![](images/confmatrix6.png) 
+![](images/confmatrix7.png) ![](images/confmatrix8.png) 
+![](images/confmatrix9.png) ![](images/confmatrix10.png) 
+
+
+
+When restricting to looking at model predictions to predictions that are with prediction probabilities (which we can interpret as confidence in prediction) to probabilities $\geq$ 70%, our confusion matrices are quite a bit better:
+
+![](images/confidentmat1.png) ![](images/confidentmat2.png) 
+![](images/confidentmat3.png) ![](images/confidentmat4.png) 
+![](images/confidentmat5.png) ![](images/confidentmat6.png) 
+![](images/confidentmat7.png) ![](images/confidentmat8.png) 
+![](images/confidentmat9.png) ![](images/confidentmat10.png) 
+
+
+
+
+
 # Data-loading
 
 ## Chunked Event Data
